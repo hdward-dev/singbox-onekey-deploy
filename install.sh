@@ -7,11 +7,17 @@
 # --- 主执行流程 ---
 
 echo "--- Sing-box 部署配置 ---"
-read -p "请输入域名: " domain
-read -p "Hysteria2 端口: " hy2_port
-read -p "Hysteria2 密码: " hy2_password
-read -p "TUIC 端口: " tuic_port
-read -p "TUIC 密码: " tuic_password
+if ! exec 3</dev/tty; then
+   echo "此脚本需要在交互式终端中运行。"
+   exit 1
+fi
+
+read -r -p "请输入域名: " domain <&3
+read -r -p "Hysteria2 端口: " hy2_port <&3
+read -r -p "Hysteria2 密码: " hy2_password <&3
+read -r -p "TUIC 端口: " tuic_port <&3
+read -r -p "TUIC 密码: " tuic_password <&3
+exec 3<&-
 echo "$domain" > /tmp/domain.txt
 
 # 检查是否为 Root 用户
@@ -79,7 +85,12 @@ acme_setup() {
 kernel_optimization() {
     echo "1. 开启 BBR v1 (推荐)"
     echo "2. 开启 BBR v3 (需要安装新内核并重启)"
-    read -p "请选择 BBR 版本 [1-2]: " bbr_choice
+    if ! exec 3</dev/tty; then
+        echo "此脚本需要在交互式终端中运行。"
+        exit 1
+    fi
+    read -r -p "请选择 BBR 版本 [1-2]: " bbr_choice <&3
+    exec 3<&-
 
     if [[ "$bbr_choice" == "1" ]]; then
         echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
