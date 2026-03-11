@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Sing-box 一键部署脚本
 # 作者: Opencode
 # 日期: 2026-03-11
@@ -107,9 +109,14 @@ kernel_optimization() {
             echo "BBR v3 需要 Mainline 内核 (ELRepo)。正在安装..."
             rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
             rhel_version=$(rpm -E %rhel)
-            if [ -z "$rhel_version" ]; then rhel_version=8; fi 
-            yum install -y https://www.elrepo.org/elrepo-release-${rhel_version}.elrepo.noarch.rpm
-            yum --enablerepo=elrepo-kernel install -y kernel-ml
+            if [ -z "$rhel_version" ]; then rhel_version=8; fi
+            if command -v dnf >/dev/null 2>&1; then
+                pkg_mgr="dnf"
+            else
+                pkg_mgr="yum"
+            fi
+            "$pkg_mgr" install -y "https://www.elrepo.org/elrepo-release-${rhel_version}.el${rhel_version}.elrepo.noarch.rpm"
+            "$pkg_mgr" --enablerepo=elrepo-kernel install -y kernel-ml
             grub2-set-default 0
             grub2-mkconfig -o /boot/grub2/grub.cfg
         fi
