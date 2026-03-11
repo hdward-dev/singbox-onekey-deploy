@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-# Sing-box One-Key Deploy Script
-# Author: Opencode
-# Date: 2026-03-11
+# Sing-box 一键部署脚本
+# 作者: Opencode
+# 日期: 2026-03-11
 
-# Ensure the script runs as root
+# 检查是否为 Root 用户
 if [[ $EUID -ne 0 ]]; then
-   echo "This script must be run as root." 
+   echo "此脚本必须以 root 权限运行。" 
    exit 1
 fi
 
-# Detect OS and Architecture
+# 检测操作系统和架构
 os_check() {
     if [ -f /etc/debian_version ]; then
         OS="debian"
@@ -21,13 +21,14 @@ os_check() {
             OS="centos"
         fi
     else
-        echo "Unsupported OS."
+        echo "不支持的操作系统。"
         exit 1
     fi
 }
 
+# 安装依赖
 install_dependencies() {
-    echo "Installing dependencies..."
+    echo "正在安装依赖..."
     if [[ "$OS" == "debian" ]]; then
         apt-get update -y
         apt-get install -y curl wget tar socat jq openssl net-tools
@@ -40,38 +41,22 @@ install_dependencies() {
     fi
 }
 
-# Get User Input
-echo "--- Sing-box Deployment Configuration ---"
-read -p "Enter your domain: " domain
-read -p "Hysteria2 Port: " hy2_port
-read -p "Hysteria2 Password: " hy2_password
-read -p "TUIC Port: " tuic_port
-read -p "TUIC Password: " tuic_password
-echo "$domain" > /tmp/domain.txt
-
-# Run setup
-os_check
-install_dependencies
-
-# ACME.sh Certificate Management
+# ACME.sh 证书管理
 acme_setup() {
-    echo "Installing acme.sh..."
-    # 修复：确保 acme.sh 安装正确，避免在 cron 中重复执行
+    echo "正在安装 acme.sh..."
     curl https://get.acme.sh | sh -s
     
-    # 明确导出 PATH
     export PATH=$PATH:/root/.acme.sh
     ACME_BIN="/root/.acme.sh/acme.sh"
 
-    # Simple check for 80 port
+    # 简单检查 80 端口
     if netstat -tulpn | grep -E ':80\s' > /dev/null; then
-        echo "Port 80 is occupied. Please stop any web server first."
+        echo "80 端口被占用，请先停止相关服务。"
         exit 1
     fi
 
-    echo "Using domain: $domain"
+    echo "使用的域名: $domain"
     
-    # Ensure use of full path and correct parameters
     $ACME_BIN --issue -d "$domain" --standalone --force
     
     mkdir -p /etc/sing-box/certs/
@@ -80,42 +65,46 @@ acme_setup() {
         --fullchain-file /etc/sing-box/certs/"$domain".crt
 }
 
-acme_setup
-
-
-# Kernel Optimization
+# 内核优化 (BBR)
 kernel_optimization() {
-    # [Restoring the original kernel_optimization logic]
-    echo "1. Enable BBR v1 (Recommended)"
-    echo "2. Enable BBR v3 (Requires new kernel, reboot)"
-    read -p "Select BBR version [1-2]: " bbr_choice
+    echo "1. 开启 BBR v1 (推荐)"
+    echo "2. 开启 BBR v3 (需要安装新内核并重启)"
+    read -p "请选择 BBR 版本 [1-2]: " bbr_choice
 
     if [[ "$bbr_choice" == "1" ]]; then
         echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
         echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
         sysctl -p
     elif [[ "$bbr_choice" == "2" ]]; then
-        echo "BBR v3 requires XanMod kernel. Installing..."
-        # Simplified logic for example; assumes user confirms reboot
-        wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /usr/share/keyrings/xanmod.gpg
-        echo 'deb [signed-by=/usr/share/keyrings/xanmod.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
-        apt-get update
-        apt-get install -y linux-xanmod-x64v3
-        echo "Kernel installed. Please reboot and run this script again."
+        if [[ "$OS" == "debian" ]]; then
+            echo "BBR v3 需要 XanMod 内核。正在安装..."
+            wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /usr/share/keyrings/xanmod.gpg
+            echo 'deb [signed-by=/usr/share/keyrings/xanmod.gpg] http://deb.xanmod.org releases main' | tee /etc/apt/sources.list.d/xanmod-release.list
+            apt-get update
+            apt-get install -y linux-xanmod-x64v3
+        elif [[ "$OS" == "rocky" || "$OS" == "centos" ]]; then
+            echo "BBR v3 需要 Mainline 内核 (ELRepo)。正在安装..."
+            rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+            rhel_version=$(rpm -E %rhel)
+            if [ -z "$rhel_version" ]; then rhel_version=8; fi 
+            yum install -y https://www.elrepo.org/elrepo-release-${rhel_version}.elrepo.noarch.rpm
+            yum --enablerepo=elrepo-kernel install -y kernel-ml
+            grub2-set-default 0
+            grub2-mkconfig -o /boot/grub2/grub.cfg
+        fi
+        echo "内核已安装。请重启服务器并再次运行此脚本。"
         exit 0
     fi
 
-    # UDP Tuning
+    # UDP 调优
     echo "net.core.rmem_max=67108864" >> /etc/sysctl.conf
     echo "net.core.wmem_max=67108864" >> /etc/sysctl.conf
     sysctl -p
 }
 
-kernel_optimization
-
-# Sing-box Installation
+# 安装 Sing-box
 install_singbox() {
-    echo "Installing sing-box..."
+    echo "正在安装 sing-box..."
     local arch=$(uname -m)
     local pkg_arch="amd64"
     if [[ "$arch" == "aarch64" ]]; then
@@ -128,11 +117,10 @@ install_singbox() {
     mkdir -p /etc/sing-box
 }
 
-# Config Generation
+# 生成配置
 generate_config() {
     domain=$(cat /tmp/domain.txt)
-    echo "Generating config for domain: $domain..."
-    # Placeholder: need to generate UUID and credentials
+    echo "正在为域名生成配置: $domain..."
     cat <<EOF > /etc/sing-box/config.json
 {
   "inbounds": [
@@ -160,7 +148,7 @@ generate_config() {
 EOF
 }
 
-# Service Setup
+# 配置服务
 setup_service() {
     cat <<EOF > /etc/systemd/system/sing-box.service
 [Unit]
@@ -179,15 +167,23 @@ EOF
     systemctl start sing-box
 }
 
-# Get User Input
-read -p "Hysteria2 Port: " hy2_port
-read -p "Hysteria2 Password: " hy2_password
-read -p "TUIC Port: " tuic_port
-read -p "TUIC Password: " tuic_password
+# --- 主执行流程 ---
 
+echo "--- Sing-box 部署配置 ---"
+read -p "请输入域名: " domain
+read -p "Hysteria2 端口: " hy2_port
+read -p "Hysteria2 密码: " hy2_password
+read -p "TUIC 端口: " tuic_port
+read -p "TUIC 密码: " tuic_password
+echo "$domain" > /tmp/domain.txt
+
+os_check
+install_dependencies
+acme_setup
+kernel_optimization
 install_singbox
 generate_config
 setup_service
-echo "Installation complete."
 
-echo "Environment setup complete."
+echo "安装完成。"
+echo "环境设置完成。"
