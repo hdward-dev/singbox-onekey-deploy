@@ -4,6 +4,16 @@
 # 作者: Opencode
 # 日期: 2026-03-11
 
+# --- 主执行流程 ---
+
+echo "--- Sing-box 部署配置 ---"
+read -p "请输入域名: " domain
+read -p "Hysteria2 端口: " hy2_port
+read -p "Hysteria2 密码: " hy2_password
+read -p "TUIC 端口: " tuic_port
+read -p "TUIC 密码: " tuic_password
+echo "$domain" > /tmp/domain.txt
+
 # 检查是否为 Root 用户
 if [[ $EUID -ne 0 ]]; then
    echo "此脚本必须以 root 权限运行。" 
@@ -166,16 +176,6 @@ EOF
     systemctl enable sing-box
     systemctl start sing-box
 }
-
-# --- 主执行流程 ---
-
-echo "--- Sing-box 部署配置 ---"
-read -p "请输入域名: " domain
-read -p "Hysteria2 端口: " hy2_port
-read -p "Hysteria2 密码: " hy2_password
-read -p "TUIC 端口: " tuic_port
-read -p "TUIC 密码: " tuic_password
-echo "$domain" > /tmp/domain.txt
 
 os_check
 install_dependencies
