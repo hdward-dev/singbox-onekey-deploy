@@ -40,6 +40,15 @@ install_dependencies() {
     fi
 }
 
+# Get User Input
+echo "--- Sing-box Deployment Configuration ---"
+read -p "Enter your domain: " domain
+read -p "Hysteria2 Port: " hy2_port
+read -p "Hysteria2 Password: " hy2_password
+read -p "TUIC Port: " tuic_port
+read -p "TUIC Password: " tuic_password
+echo "$domain" > /tmp/domain.txt
+
 # Run setup
 os_check
 install_dependencies
@@ -47,24 +56,32 @@ install_dependencies
 # ACME.sh Certificate Management
 acme_setup() {
     echo "Installing acme.sh..."
-    curl https://get.acme.sh | sh
-    source ~/.bashrc
-    export PATH=$PATH:$HOME/.acme.sh
+    # 修复：确保 acme.sh 安装正确，避免在 cron 中重复执行
+    curl https://get.acme.sh | sh -s
     
+    # 明确导出 PATH
+    export PATH=$PATH:/root/.acme.sh
+    ACME_BIN="/root/.acme.sh/acme.sh"
+
     # Simple check for 80 port
-    if netstat -tulpn | grep :80 > /dev/null; then
+    if netstat -tulpn | grep -E ':80\s' > /dev/null; then
         echo "Port 80 is occupied. Please stop any web server first."
         exit 1
     fi
 
-    read -p "Enter your domain: " domain
-    ~/.acme.sh/acme.sh --issue -d $domain --standalone
+    echo "Using domain: $domain"
+    
+    # Ensure use of full path and correct parameters
+    $ACME_BIN --issue -d "$domain" --standalone --force
+    
     mkdir -p /etc/sing-box/certs/
-    ~/.acme.sh/acme.sh --install-cert -d $domain --key-file /etc/sing-box/certs/$domain.key --fullchain-file /etc/sing-box/certs/$domain.crt
-    echo "$domain" > /tmp/domain.txt
+    $ACME_BIN --install-cert -d "$domain" \
+        --key-file /etc/sing-box/certs/"$domain".key \
+        --fullchain-file /etc/sing-box/certs/"$domain".crt
 }
 
 acme_setup
+
 
 # Kernel Optimization
 kernel_optimization() {
