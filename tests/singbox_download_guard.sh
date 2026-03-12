@@ -5,7 +5,7 @@ set -euo pipefail
 script_path=$(cd "$(dirname "$0")/.." && pwd)/install.sh
 
 required_patterns=(
-  'contains(\"linux-$pkg_arch\") and (.name | endswith(\".tar.gz\"))'
+  'select((.name | contains(\"linux-$pkg_arch\")) and (.name | endswith(\".tar.gz\")))'
   'if [[ -z "$download_url" || "$download_url" == "null" ]]; then'
   '无法获取 sing-box 下载地址'
   'wget -O sing-box.tar.gz "$download_url"'

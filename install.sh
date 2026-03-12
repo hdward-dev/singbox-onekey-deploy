@@ -352,7 +352,7 @@ install_singbox() {
         exit 1
     }
 
-    download_url=$(printf '%s' "$release_json" | jq -r ".assets[] | select(.name | contains(\"linux-$pkg_arch\") and (.name | endswith(\".tar.gz\"))) | .browser_download_url" | head -n 1)
+    download_url=$(printf '%s' "$release_json" | jq -r ".assets[] | select((.name | contains(\"linux-$pkg_arch\")) and (.name | endswith(\".tar.gz\"))) | .browser_download_url" | head -n 1)
 
     if [[ -z "$download_url" || "$download_url" == "null" ]]; then
         echo "无法获取 sing-box 下载地址，可能是 GitHub API 限流或发布资产格式已变化。"
