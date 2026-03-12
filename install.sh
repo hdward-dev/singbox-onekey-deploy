@@ -66,6 +66,7 @@ acme_setup() {
     
     export PATH=$PATH:/root/.acme.sh
     ACME_BIN="/root/.acme.sh/acme.sh"
+    $ACME_BIN --set-default-ca --server letsencrypt
 
     # 简单检查 80 端口
     if netstat -tulpn | grep -E ':80\s' > /dev/null; then
