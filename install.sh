@@ -339,11 +339,28 @@ install_singbox() {
     echo "正在安装 sing-box..."
     local arch=$(uname -m)
     local pkg_arch="amd64"
+    local release_api="https://api.github.com/repos/SagerNet/sing-box/releases/latest"
+    local release_json
+    local download_url
+
     if [[ "$arch" == "aarch64" ]]; then
         pkg_arch="arm64"
     fi
-    local download_url=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r ".assets[] | select(.name | contains(\"linux-$pkg_arch\")) | .browser_download_url")
-    wget -qO sing-box.tar.gz "$download_url"
+
+    release_json=$(curl -fsSL "$release_api") || {
+        echo "无法获取 sing-box 发布信息，请检查 GitHub 访问或稍后重试。"
+        exit 1
+    }
+
+    download_url=$(printf '%s' "$release_json" | jq -r ".assets[] | select(.name | contains(\"linux-$pkg_arch\") and (.name | endswith(\".tar.gz\"))) | .browser_download_url" | head -n 1)
+
+    if [[ -z "$download_url" || "$download_url" == "null" ]]; then
+        echo "无法获取 sing-box 下载地址，可能是 GitHub API 限流或发布资产格式已变化。"
+        exit 1
+    fi
+
+    echo "下载地址: $download_url"
+    wget -O sing-box.tar.gz "$download_url"
     tar -xzf sing-box.tar.gz --strip-components=1 -C /usr/local/bin/
     chmod +x /usr/local/bin/sing-box
     mkdir -p "$SINGBOX_CONFIG_DIR"
