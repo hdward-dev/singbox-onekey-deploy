@@ -257,6 +257,17 @@ acme_setup() {
     ACME_BIN="/root/.acme.sh/acme.sh"
     $ACME_BIN --set-default-ca --server letsencrypt
 
+    mkdir -p /etc/sing-box/certs/
+    
+    local cert_key="/etc/sing-box/certs/$domain.key"
+    local cert_crt="/etc/sing-box/certs/$domain.crt"
+    
+    if [[ -f "$cert_crt" && -f "$cert_key" ]]; then
+        echo "证书已存在，跳过重新签发。"
+        echo "如需强制更新，请删除 /etc/sing-box/certs/ 目录后重新运行。"
+        return 0
+    fi
+
     # 简单检查 80 端口
     if netstat -tulpn | grep -E ':80\s' > /dev/null; then
         echo "80 端口被占用，请先停止相关服务。"
@@ -265,12 +276,11 @@ acme_setup() {
 
     echo "使用的域名: $domain"
     
-    $ACME_BIN --issue -d "$domain" --standalone --force
+    $ACME_BIN --issue -d "$domain" --standalone
     
-    mkdir -p /etc/sing-box/certs/
     $ACME_BIN --install-cert -d "$domain" \
-        --key-file /etc/sing-box/certs/"$domain".key \
-        --fullchain-file /etc/sing-box/certs/"$domain".crt
+        --key-file "$cert_key" \
+        --fullchain-file "$cert_crt"
 }
 
 # 内核优化 (BBR)
