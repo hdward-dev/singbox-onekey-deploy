@@ -6,7 +6,7 @@ script_path=$(cd "$(dirname "$0")/.." && pwd)/install.sh
 
 required_patterns=(
   '"type": "hysteria2"'
-  '"listen": "::"'
+  '"listen": "0.0.0.0"'
   '"users": ['
   '"name": "hy2_user"'
   '"type": "tuic"'
