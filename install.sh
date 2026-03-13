@@ -339,6 +339,7 @@ kernel_optimization() {
     # UDP 调优
     echo "net.core.rmem_max=67108864" >> /etc/sysctl.conf
     echo "net.core.wmem_max=67108864" >> /etc/sysctl.conf
+    echo "net.ipv6.bindv6only = 0" >> /etc/sysctl.conf
     sysctl -p
     install_stage="kernel_ready"
     save_install_state
@@ -385,7 +386,7 @@ generate_config() {
   "inbounds": [
     {
       "type": "hysteria2",
-      "listen": "0.0.0.0",
+      "listen": "::",
       "listen_port": $hy2_port,
       "users": [
         {
@@ -401,7 +402,7 @@ generate_config() {
     },
     {
       "type": "tuic",
-      "listen": "0.0.0.0",
+      "listen": "::",
       "listen_port": $tuic_port,
       "users": [
         {
