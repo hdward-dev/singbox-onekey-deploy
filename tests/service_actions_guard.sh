@@ -57,4 +57,23 @@ if grep -Fq '/root/.acme.sh' "$script_path" && perl -0ne 'exit 0 if /uninstall_s
   exit 1
 fi
 
+status_info_patterns=(
+  'jq -r'
+  'hysteria2'
+  'tuic'
+  'listen_port'
+  'password'
+  'Hysteria2:'
+  'TUIC:'
+  '端口:'
+  '密码:'
+)
+
+for pattern in "${status_info_patterns[@]}"; do
+  if ! perl -0ne "exit 0 if /status_singbox\(\).*${pattern}/s; exit 1" "$script_path"; then
+    printf 'status_singbox must show config info: %s\n' "$pattern" >&2
+    exit 1
+  fi
+done
+
 printf 'service actions and uninstall flow look guarded\n'

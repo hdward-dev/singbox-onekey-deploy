@@ -561,6 +561,29 @@ status_singbox() {
     fi
 
     systemctl --no-pager status sing-box
+    
+    echo ""
+    echo "=== 配置信息 ==="
+    
+    local config_file="$SINGBOX_CONFIG_DIR/config.json"
+    if [[ -f "$config_file" ]]; then
+        local hy2_port=$(jq -r '.inbounds[] | select(.type=="hysteria2") | .listen_port' "$config_file" 2>/dev/null || echo "未知")
+        local hy2_password=$(jq -r '.inbounds[] | select(.type=="hysteria2") | .users[0].password' "$config_file" 2>/dev/null || echo "未知")
+        local tuic_port=$(jq -r '.inbounds[] | select(.type=="tuic") | .listen_port' "$config_file" 2>/dev/null || echo "未知")
+        local tuic_uuid=$(jq -r '.inbounds[] | select(.type=="tuic") | .users[0].uuid' "$config_file" 2>/dev/null || echo "未知")
+        local tuic_password=$(jq -r '.inbounds[] | select(.type=="tuic") | .users[0].password' "$config_file" 2>/dev/null || echo "未知")
+        
+        echo "Hysteria2:"
+        echo "  端口: $hy2_port"
+        echo "  密码: $hy2_password"
+        echo ""
+        echo "TUIC:"
+        echo "  端口: $tuic_port"
+        echo "  UUID: $tuic_uuid"
+        echo "  密码: $tuic_password"
+    else
+        echo "配置文件不存在: $config_file"
+    fi
 }
 
 uninstall_singbox() {
