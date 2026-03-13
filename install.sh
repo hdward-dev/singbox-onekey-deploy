@@ -369,13 +369,19 @@ install_singbox() {
 # 生成配置
 generate_config() {
     echo "正在为域名生成配置: $domain..."
+    local tuic_uuid=$(cat /proc/sys/kernel/random/uuid)
     cat <<EOF > "$SINGBOX_CONFIG_DIR/config.json"
 {
   "inbounds": [
     {
       "type": "hysteria2",
       "listen_port": $hy2_port,
-      "password": "$hy2_password",
+      "users": [
+        {
+          "name": "hy2_user",
+          "password": "$hy2_password"
+        }
+      ],
       "tls": {
         "certificate_path": "/etc/sing-box/certs/$domain.crt",
         "key_path": "/etc/sing-box/certs/$domain.key"
@@ -384,8 +390,13 @@ generate_config() {
     {
       "type": "tuic",
       "listen_port": $tuic_port,
-      "uuid": "$(cat /proc/sys/kernel/random/uuid)",
-      "password": "$tuic_password",
+      "users": [
+        {
+          "name": "tuic_user",
+          "uuid": "$tuic_uuid",
+          "password": "$tuic_password"
+        }
+      ],
       "tls": {
         "certificate_path": "/etc/sing-box/certs/$domain.crt",
         "key_path": "/etc/sing-box/certs/$domain.key"
