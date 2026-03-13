@@ -393,6 +393,7 @@ generate_config() {
         }
       ],
       "tls": {
+        "enabled": true,
         "certificate_path": "/etc/sing-box/certs/$domain.crt",
         "key_path": "/etc/sing-box/certs/$domain.key"
       }
@@ -408,6 +409,7 @@ generate_config() {
         }
       ],
       "tls": {
+        "enabled": true,
         "certificate_path": "/etc/sing-box/certs/$domain.crt",
         "key_path": "/etc/sing-box/certs/$domain.key"
       }

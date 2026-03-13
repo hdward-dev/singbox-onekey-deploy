@@ -11,6 +11,7 @@ required_patterns=(
   '"type": "tuic"'
   '"name": "tuic_user"'
   '"uuid": "$tuic_uuid"'
+  '"enabled": true'
 )
 
 for pattern in "${required_patterns[@]}"; do
